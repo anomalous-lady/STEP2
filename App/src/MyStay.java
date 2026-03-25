@@ -1,21 +1,20 @@
+package com.bookmystay.uc3;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Use Case 3: Centralized Room Inventory Management
  *
- * This class demonstrates centralized inventory management using HashMap
- * for the Book My Stay application.
- * It replaces scattered availability variables with a single, consistent structure.
+ * Centralizes room availability using HashMap to replace scattered variables.
+ * Demonstrates encapsulation, single source of truth, and scalable design.
  *
  * Version: 3.1 (refactored)
  *
  * @author YourName
  */
 
-package com.bookmystay.uc3;
-
-import java.util.HashMap;
-import java.util.Map;
-
-// Inventory class to manage room availability
+// Inventory class
 class RoomInventory {
     private Map<String, Integer> inventory;
 
@@ -23,7 +22,7 @@ class RoomInventory {
         inventory = new HashMap<>();
     }
 
-    // Add room type with initial availability
+    // Add room type with availability
     public void addRoomType(String roomType, int count) {
         inventory.put(roomType, count);
     }
@@ -33,18 +32,17 @@ class RoomInventory {
         return inventory.getOrDefault(roomType, 0);
     }
 
-    // Update availability (subtract booked rooms)
+    // Book a room (decrement availability)
     public boolean bookRoom(String roomType) {
         int available = inventory.getOrDefault(roomType, 0);
         if (available > 0) {
             inventory.put(roomType, available - 1);
             return true;
-        } else {
-            return false; // no rooms available
         }
+        return false;
     }
 
-    // Display current inventory
+    // Display inventory
     public void displayInventory() {
         System.out.println("Current Room Inventory:");
         for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
@@ -53,10 +51,9 @@ class RoomInventory {
     }
 }
 
-// Main class for UC3
+// Main class
 public class MyStay {
     public static void main(String[] args) {
-
         System.out.println("=====================================");
         System.out.println("  Book My Stay App - Inventory Setup");
         System.out.println("  Version 3.1");
@@ -65,12 +62,12 @@ public class MyStay {
         // Initialize inventory
         RoomInventory inventory = new RoomInventory();
 
-        // Add room types with counts
+        // Add room types
         inventory.addRoomType("Single Room", 5);
         inventory.addRoomType("Double Room", 3);
         inventory.addRoomType("Suite Room", 2);
 
-        // Display initial inventory
+        // Display inventory
         inventory.displayInventory();
 
         // Simulate booking
