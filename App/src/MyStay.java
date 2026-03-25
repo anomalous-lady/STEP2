@@ -1,16 +1,23 @@
-package com.bookmystay.uc8;
+package com.bookmystay.uc9;
 
 import java.util.*;
 
 /**
- * Use Case 8: Booking History & Reporting
+ * Use Case 9: Error Handling & Validation
  *
- * Maintains confirmed booking history and generates simple reports.
+ * Validates booking requests and ensures system state consistency.
  *
- * Version: 8.0
+ * Version: 9.0
  *
  * Author: YourName
  */
+
+// Custom exception for invalid bookings
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
 
 // Reservation class
 class Reservation {
@@ -18,7 +25,13 @@ class Reservation {
     private String guestName;
     private String roomType;
 
-    public Reservation(String reservationId, String guestName, String roomType) {
+    public Reservation(String reservationId, String guestName, String roomType) throws InvalidBookingException {
+        if (guestName == null || guestName.isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
+        }
+        if (!roomType.equals("Single Room") && !roomType.equals("Double Room") && !roomType.equals("Suite Room")) {
+            throw new InvalidBookingException("Invalid room type: " + roomType);
+        }
         this.reservationId = reservationId;
         this.guestName = guestName;
         this.roomType = roomType;
@@ -37,39 +50,34 @@ class Reservation {
     }
 }
 
-// Booking History Service
-class BookingHistory {
+// Booking Service with validation
+class BookingService {
     private List<Reservation> confirmedBookings;
+    private Map<String, Integer> roomInventory;
 
-    public BookingHistory() {
+    public BookingService() {
         confirmedBookings = new ArrayList<>();
+        roomInventory = new HashMap<>();
+        roomInventory.put("Single Room", 2);
+        roomInventory.put("Double Room", 2);
+        roomInventory.put("Suite Room", 1);
     }
 
-    public void addBooking(Reservation reservation) {
+    public void confirmBooking(Reservation reservation) throws InvalidBookingException {
+        String room = reservation.getRoomType();
+        int available = roomInventory.getOrDefault(room, 0);
+        if (available <= 0) {
+            throw new InvalidBookingException("No available rooms of type: " + room);
+        }
         confirmedBookings.add(reservation);
-        System.out.println("Booking confirmed for " + reservation.getGuestName());
+        roomInventory.put(room, available - 1);
+        System.out.println("Booking confirmed for " + reservation.getGuestName() + " (" + room + ")");
     }
 
-    public void displayAllBookings() {
-        if (confirmedBookings.isEmpty()) {
-            System.out.println("No confirmed bookings.");
-            return;
-        }
-        System.out.println("Booking History:");
+    public void showBookings() {
+        System.out.println("Confirmed Bookings:");
         for (Reservation r : confirmedBookings) {
-            System.out.println("- " + r.getReservationId() + ": " + r.getGuestName() +
-                    " (" + r.getRoomType() + ")");
-        }
-    }
-
-    public void generateReport() {
-        System.out.println("Booking Summary Report:");
-        Map<String, Integer> roomCount = new HashMap<>();
-        for (Reservation r : confirmedBookings) {
-            roomCount.put(r.getRoomType(), roomCount.getOrDefault(r.getRoomType(), 0) + 1);
-        }
-        for (String roomType : roomCount.keySet()) {
-            System.out.println(roomType + ": " + roomCount.get(roomType) + " bookings");
+            System.out.println("- " + r.getReservationId() + ": " + r.getGuestName() + " (" + r.getRoomType() + ")");
         }
     }
 }
@@ -78,26 +86,27 @@ class BookingHistory {
 public class MyStay {
     public static void main(String[] args) {
         System.out.println("=====================================");
-        System.out.println(" Book My Stay App - Booking History & Reporting");
-        System.out.println(" Version 8.0");
+        System.out.println(" Book My Stay App - Error Handling & Validation");
+        System.out.println(" Version 9.0");
         System.out.println("=====================================");
 
-        // Create reservations
-        Reservation r1 = new Reservation("RES001", "Alice", "Single Room");
-        Reservation r2 = new Reservation("RES002", "Bob", "Suite Room");
-        Reservation r3 = new Reservation("RES003", "Charlie", "Double Room");
+        BookingService service = new BookingService();
 
-        // Manage booking history
-        BookingHistory history = new BookingHistory();
+        try {
+            Reservation r1 = new Reservation("RES101", "Alice", "Single Room");
+            service.confirmBooking(r1);
 
-        // Add bookings
-        history.addBooking(r1);
-        history.addBooking(r2);
-        history.addBooking(r3);
+            Reservation r2 = new Reservation("RES102", "Bob", "Suite Room");
+            service.confirmBooking(r2);
+
+            Reservation r3 = new Reservation("RES103", "", "Double Room"); // Invalid guest name
+            service.confirmBooking(r3);
+
+        } catch (InvalidBookingException e) {
+            System.out.println("Booking failed: " + e.getMessage());
+        }
 
         System.out.println();
-        history.displayAllBookings();
-        System.out.println();
-        history.generateReport();
+        service.showBookings();
     }
 }
