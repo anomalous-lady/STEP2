@@ -1,13 +1,13 @@
-package com.bookmystay.uc10;
+package com.bookmystay.uc11;
 
 import java.util.*;
 
 /**
- * Use Case 10: Booking Cancellation & Inventory Rollback
+ * Use Case 11: Concurrent Booking Simulation
  *
- * Safely cancels confirmed bookings and restores system state.
+ * Simulates multiple guests booking concurrently with thread-safe inventory updates.
  *
- * Version: 10.0
+ * Version: 11.0
  *
  * Author: YourName
  */
@@ -23,94 +23,85 @@ class Reservation {
         this.roomType = roomType;
     }
 
-    public String getReservationId() {
-        return reservationId;
-    }
-
-    public String getGuestName() {
-        return guestName;
-    }
-
-    public String getRoomType() {
-        return roomType;
-    }
+    public String getReservationId() { return reservationId; }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
 }
 
-class CancellationService {
-    private List<Reservation> confirmedBookings;
+class BookingInventory {
     private Map<String, Integer> roomInventory;
-    private Stack<String> rollbackStack;
 
-    public CancellationService() {
-        confirmedBookings = new ArrayList<>();
+    public BookingInventory() {
         roomInventory = new HashMap<>();
-        rollbackStack = new Stack<>();
         roomInventory.put("Single Room", 2);
         roomInventory.put("Double Room", 2);
         roomInventory.put("Suite Room", 1);
     }
 
-    public void confirmBooking(Reservation r) {
-        confirmedBookings.add(r);
-        String room = r.getRoomType();
-        roomInventory.put(room, roomInventory.get(room) - 1);
-        System.out.println("Booking confirmed for " + r.getGuestName() + " (" + room + ")");
+    // synchronized method for thread-safe allocation
+    public synchronized boolean allocateRoom(String roomType) {
+        int available = roomInventory.getOrDefault(roomType, 0);
+        if (available > 0) {
+            roomInventory.put(roomType, available - 1);
+            return true;
+        }
+        return false;
     }
 
-    public void cancelBooking(String reservationId) {
-        Reservation toCancel = null;
-        for (Reservation r : confirmedBookings) {
-            if (r.getReservationId().equals(reservationId)) {
-                toCancel = r;
-                break;
-            }
-        }
-        if (toCancel == null) {
-            System.out.println("Cancellation failed: Reservation ID not found.");
-            return;
-        }
+    public synchronized Map<String, Integer> getInventorySnapshot() {
+        return new HashMap<>(roomInventory);
+    }
+}
 
-        // Push room type onto rollback stack
-        rollbackStack.push(toCancel.getRoomType());
+class BookingTask implements Runnable {
+    private Reservation reservation;
+    private BookingInventory inventory;
 
-        // Restore inventory
-        String room = rollbackStack.pop();
-        roomInventory.put(room, roomInventory.get(room) + 1);
-
-        // Remove from confirmed bookings
-        confirmedBookings.remove(toCancel);
-        System.out.println("Booking cancelled for " + toCancel.getGuestName() + " (" + room + ")");
+    public BookingTask(Reservation reservation, BookingInventory inventory) {
+        this.reservation = reservation;
+        this.inventory = inventory;
     }
 
-    public void showBookings() {
-        System.out.println("\nConfirmed Bookings:");
-        for (Reservation r : confirmedBookings) {
-            System.out.println("- " + r.getReservationId() + ": " + r.getGuestName() + " (" + r.getRoomType() + ")");
+    @Override
+    public void run() {
+        boolean success = inventory.allocateRoom(reservation.getRoomType());
+        if (success) {
+            System.out.println("Booking successful for " + reservation.getGuestName() +
+                    " (" + reservation.getRoomType() + ")");
+        } else {
+            System.out.println("Booking failed for " + reservation.getGuestName() +
+                    " (" + reservation.getRoomType() + "): No availability");
         }
-        System.out.println("Current Inventory: " + roomInventory);
     }
 }
 
 public class MyStay {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         System.out.println("=====================================");
-        System.out.println(" Book My Stay App - Booking Cancellation & Inventory Rollback");
-        System.out.println(" Version 10.0");
+        System.out.println(" Book My Stay App - Concurrent Booking Simulation");
+        System.out.println(" Version 11.0");
         System.out.println("=====================================");
 
-        CancellationService service = new CancellationService();
+        BookingInventory inventory = new BookingInventory();
 
-        // Confirm some bookings
-        Reservation r1 = new Reservation("RES101", "Alice", "Single Room");
-        Reservation r2 = new Reservation("RES102", "Bob", "Suite Room");
-        service.confirmBooking(r1);
-        service.confirmBooking(r2);
+        // Sample reservations
+        Reservation r1 = new Reservation("RES201", "Alice", "Single Room");
+        Reservation r2 = new Reservation("RES202", "Bob", "Single Room");
+        Reservation r3 = new Reservation("RES203", "Charlie", "Single Room"); // should fail
+        Reservation r4 = new Reservation("RES204", "Diana", "Suite Room");
 
-        // Attempt cancellation
-        service.cancelBooking("RES101"); // valid cancellation
-        service.cancelBooking("RES999"); // invalid cancellation
+        List<Thread> threads = new ArrayList<>();
+        threads.add(new Thread(new BookingTask(r1, inventory)));
+        threads.add(new Thread(new BookingTask(r2, inventory)));
+        threads.add(new Thread(new BookingTask(r3, inventory)));
+        threads.add(new Thread(new BookingTask(r4, inventory)));
 
-        // Show current bookings and inventory
-        service.showBookings();
+        // Start all threads simultaneously
+        for (Thread t : threads) t.start();
+
+        // Wait for all threads to finish
+        for (Thread t : threads) t.join();
+
+        System.out.println("Final Inventory: " + inventory.getInventorySnapshot());
     }
 }
