@@ -1,13 +1,13 @@
-package com.bookmystay.uc7;
+package com.bookmystay.uc8;
 
 import java.util.*;
 
 /**
- * Use Case 7: Add-On Service Selection
+ * Use Case 8: Booking History & Reporting
  *
- * Allows guests to select optional services for their reservation.
+ * Maintains confirmed booking history and generates simple reports.
  *
- * Version: 7.0
+ * Version: 8.0
  *
  * Author: YourName
  */
@@ -37,54 +37,40 @@ class Reservation {
     }
 }
 
-// Service class
-class Service {
-    private String name;
-    private double cost;
+// Booking History Service
+class BookingHistory {
+    private List<Reservation> confirmedBookings;
 
-    public Service(String name, double cost) {
-        this.name = name;
-        this.cost = cost;
+    public BookingHistory() {
+        confirmedBookings = new ArrayList<>();
     }
 
-    public String getName() {
-        return name;
+    public void addBooking(Reservation reservation) {
+        confirmedBookings.add(reservation);
+        System.out.println("Booking confirmed for " + reservation.getGuestName());
     }
 
-    public double getCost() {
-        return cost;
-    }
-}
-
-// Add-On Service Manager
-class AddOnServiceManager {
-    private Map<String, List<Service>> reservationServices;
-
-    public AddOnServiceManager() {
-        reservationServices = new HashMap<>();
-    }
-
-    public void addService(Reservation reservation, Service service) {
-        reservationServices
-                .computeIfAbsent(reservation.getReservationId(), k -> new ArrayList<>())
-                .add(service);
-        System.out.println("Added service " + service.getName() +
-                " to reservation " + reservation.getReservationId());
-    }
-
-    public void displayServices(Reservation reservation) {
-        List<Service> services = reservationServices.get(reservation.getReservationId());
-        if (services == null || services.isEmpty()) {
-            System.out.println("No add-on services for " + reservation.getGuestName());
+    public void displayAllBookings() {
+        if (confirmedBookings.isEmpty()) {
+            System.out.println("No confirmed bookings.");
             return;
         }
-        double total = 0;
-        System.out.println("Add-on services for " + reservation.getGuestName() + ":");
-        for (Service s : services) {
-            System.out.println("- " + s.getName() + " ($" + s.getCost() + ")");
-            total += s.getCost();
+        System.out.println("Booking History:");
+        for (Reservation r : confirmedBookings) {
+            System.out.println("- " + r.getReservationId() + ": " + r.getGuestName() +
+                    " (" + r.getRoomType() + ")");
         }
-        System.out.println("Total additional cost: $" + total);
+    }
+
+    public void generateReport() {
+        System.out.println("Booking Summary Report:");
+        Map<String, Integer> roomCount = new HashMap<>();
+        for (Reservation r : confirmedBookings) {
+            roomCount.put(r.getRoomType(), roomCount.getOrDefault(r.getRoomType(), 0) + 1);
+        }
+        for (String roomType : roomCount.keySet()) {
+            System.out.println(roomType + ": " + roomCount.get(roomType) + " bookings");
+        }
     }
 }
 
@@ -92,31 +78,26 @@ class AddOnServiceManager {
 public class MyStay {
     public static void main(String[] args) {
         System.out.println("=====================================");
-        System.out.println(" Book My Stay App - Add-On Services");
-        System.out.println(" Version 7.0");
+        System.out.println(" Book My Stay App - Booking History & Reporting");
+        System.out.println(" Version 8.0");
         System.out.println("=====================================");
 
         // Create reservations
         Reservation r1 = new Reservation("RES001", "Alice", "Single Room");
         Reservation r2 = new Reservation("RES002", "Bob", "Suite Room");
+        Reservation r3 = new Reservation("RES003", "Charlie", "Double Room");
 
-        // Create services
-        Service breakfast = new Service("Breakfast", 10.0);
-        Service airportPickup = new Service("Airport Pickup", 25.0);
-        Service spa = new Service("Spa Package", 50.0);
+        // Manage booking history
+        BookingHistory history = new BookingHistory();
 
-        // Manage add-on services
-        AddOnServiceManager serviceManager = new AddOnServiceManager();
+        // Add bookings
+        history.addBooking(r1);
+        history.addBooking(r2);
+        history.addBooking(r3);
 
-        // Assign services
-        serviceManager.addService(r1, breakfast);
-        serviceManager.addService(r1, airportPickup);
-        serviceManager.addService(r2, spa);
-
-        // Display assigned services
         System.out.println();
-        serviceManager.displayServices(r1);
+        history.displayAllBookings();
         System.out.println();
-        serviceManager.displayServices(r2);
+        history.generateReport();
     }
 }
